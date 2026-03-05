@@ -22,7 +22,7 @@ public class Server {
             serverSocket = new ServerSocket(1234);
             Class.forName("com.mysql.jdbc.Driver");
             con = DriverManager.getConnection(url, uName, password);
-            manager = new Manager();
+            manager = new Manager(con);
             System.out.println("server is on!");
 
             while (true) {

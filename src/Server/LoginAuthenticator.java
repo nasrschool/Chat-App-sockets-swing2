@@ -94,7 +94,7 @@ public class LoginAuthenticator implements Runnable{
                 bufferedWriter.write("client handler is about to be created!\n");
                 bufferedWriter.flush();
 
-                manager.createClientHandler(socket,msgType,user_id);
+                manager.createClientHandler(socket,manager,user_id);
 
             }catch(NullPointerException e){
                 System.out.println("user has left the login process!");
