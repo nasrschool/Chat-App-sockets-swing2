@@ -10,9 +10,10 @@ import java.sql.PreparedStatement;
 public class Server {
     public ServerSocket serverSocket;
     public Connection con;
-    public String url = "jdbc:mysql://localhost:3306/chat_app_server_side";
-    public String uName = "root";
-    public String password = "200608";
+    public String url = System.getenv().getOrDefault(
+            "CHAT_DB_URL", "jdbc:mysql://localhost:3306/chat_app_server_side");
+    public String uName = System.getenv().getOrDefault("CHAT_DB_USER", "root");
+    public String password = System.getenv().getOrDefault("CHAT_DB_PASSWORD", "");
     public PreparedStatement st;
     public Manager manager;
 
@@ -20,7 +21,7 @@ public class Server {
     public Server(){
         try{
             serverSocket = new ServerSocket(1234);
-            Class.forName("com.mysql.jdbc.Driver");
+            Class.forName("com.mysql.cj.jdbc.Driver");
             con = DriverManager.getConnection(url, uName, password);
             manager = new Manager(con);
             (new Thread(manager)).start();

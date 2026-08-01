@@ -30,7 +30,7 @@ public class ClientLogic {
             JSONObject msg = new JSONObject();
             msg.put("msgType",true);
             msg.put("user_id",3);
-            msg.put("user_password","0000");
+            msg.put("user_password", System.getenv().getOrDefault("CHAT_USER_PASSWORD", ""));
 
             msgQuery.add(msg);
             System.out.println("from initial: " + msgQuery);
@@ -56,7 +56,7 @@ public class ClientLogic {
                 synchronized (msgQuery){
                     for(JSONObject msg: msgQuery) {
 
-                        bufferedWriter.write(msgQuery.getFirst().toString());
+                        bufferedWriter.write(msg.toString());
                         bufferedWriter.write("\n");
                         bufferedWriter.flush();
 

@@ -41,7 +41,7 @@ public class Manager implements Runnable{
                 System.out.println("dataToTreat size: " + msgsToTreat.size());
                 Thread.sleep(3000);
             }catch(Exception e){
-                System.out.println("fuck, the sleep did something!");
+                System.out.println("manager thread interrupted while waiting");
             }
 
             synchronized (msgsToTreat){
@@ -143,7 +143,7 @@ public class Manager implements Runnable{
         } catch (SQLException e) {
             System.out.println("error creating new group!" + e);
         }
-        response.put("msg","the group has been created boi!");
+        response.put("msg", "the group has been created");
 
         return response;
     }
