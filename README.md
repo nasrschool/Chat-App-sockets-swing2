@@ -1,16 +1,41 @@
-# Chat App — socket and database prototype
+# Socket Chat with MySQL
 
-Java client/server chat prototype using sockets, JSON messages, MySQL-backed login,
-group metadata, and stored group conversations.
+The second iteration of my Java chat prototype. It keeps the socket-based message flow while adding database-backed login, group metadata, and stored conversations.
 
-## Local configuration
+## Main pieces
 
-Set these environment variables before starting `Server.Server`:
+- Java 17 socket server and client logic
+- JSON request/response payloads
+- MySQL authentication and group data access
+- Server-side connection manager and client handlers
 
-- `CHAT_DB_URL` (defaults to `jdbc:mysql://localhost:3306/chat_app_server_side`)
-- `CHAT_DB_USER` (defaults to `root`)
-- `CHAT_DB_PASSWORD` (required when the database has a password)
-- `CHAT_USER_PASSWORD` (optional password used by the current demo client)
+```mermaid
+flowchart LR
+  Client[Client logic] <--> Server[Server + Manager]
+  Server --> Auth[Login authenticator]
+  Auth --> DB[(MySQL)]
+  Server --> Groups[Groups and conversations]
+```
 
-The repository currently represents a backend prototype. Several message operations
-in `Server.Manager` remain unfinished and there is no packaged build yet.
+## Configuration
+
+Use environment variables instead of putting credentials in source code:
+
+- `CHAT_DB_URL` — defaults to `jdbc:mysql://localhost:3306/chat_app_server_side`
+- `CHAT_DB_USER` — defaults to `root`
+- `CHAT_DB_PASSWORD` — set when the local database requires one
+- `CHAT_USER_PASSWORD` — optional password for the demo client
+
+## Build and run
+
+Requirements: JDK 17, Maven 3.9+, and a local MySQL instance with the expected schema.
+
+```bash
+mvn compile
+```
+
+Start `Server.Server`, then run the client entry point used for local testing.
+
+## Current state
+
+The core is a backend prototype. Some message operations in `Server.Manager` are unfinished and the database schema/setup scripts still need to be packaged for an easier first run.
