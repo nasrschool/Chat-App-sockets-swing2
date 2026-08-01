@@ -29,6 +29,13 @@ public class LoginAuthenticator implements Runnable{
             System.out.println("error constructing ClientHandler: " + e);
         }
     }
+
+    public void sendMessage(String msg) throws Exception{
+        bufferedWriter.write(msg);
+        bufferedWriter.write("\n");
+        bufferedWriter.flush();
+    }
+
     public void run(){
         JSONObject authenticationMsg;
         ResultSet rs;
@@ -43,6 +50,7 @@ public class LoginAuthenticator implements Runnable{
             try{
                 System.out.println("waiting for auth msg");
                 String tmp = bufferedReader.readLine();
+                System.out.println("received an auth msg");
                 authenticationMsg = new JSONObject(tmp);
 
                 System.out.println("authentication msg: " + authenticationMsg);
@@ -69,32 +77,30 @@ public class LoginAuthenticator implements Runnable{
                     if(!rs.next()){
                         errorMsg.put("msgType", MsgTypes.ERROR);
                         errorMsg.put("content","user_Id not found");
-                        bufferedWriter.write(errorMsg + "\n");
-                        bufferedWriter.flush();
+                        sendMessage(errorMsg.toString());
                         continue;
                        }
 
                     if(!rs.getString("user_password").equals(password)){
                         errorMsg.put("msgType",MsgTypes.ERROR);
                         errorMsg.put("content","password incorrect");
-                        bufferedWriter.write(errorMsg + "\n");
-                        bufferedWriter.flush();;
+                        sendMessage(errorMsg.toString());
                         continue;
                     }
 
                     if(ClientHandler.clientHandlers.get(user_id) != null){
                         errorMsg.put("msgType",MsgTypes.ERROR);
                         errorMsg.put("content","already logged from another device");
-                        bufferedWriter.write(errorMsg+"\n");
-                        bufferedWriter.flush();
+                        sendMessage(errorMsg.toString());
                         continue;
                     }
                 }
 
-                bufferedWriter.write("client handler is about to be created!\n");
-                bufferedWriter.flush();
+                System.out.println("a user has logged in!");
+                sendMessage("{'msg':'client handler is about to be created!'}");
 
-                manager.createClientHandler(socket,manager,user_id);
+                manager.createClientHandler(socket,user_id);
+                break;// get out of the loop and the run function
 
             }catch(NullPointerException e){
                 System.out.println("user has left the login process!");

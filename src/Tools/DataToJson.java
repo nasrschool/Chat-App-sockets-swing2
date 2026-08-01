@@ -13,7 +13,7 @@ import java.util.HashMap;
 public class DataToJson {
     //each json contains other jsons that represent groups, and each group contains an array of
     // its users, if i recall correctly
-    public static JSONObject groupsUsersDataToJson(ResultSet rs) throws SQLException {
+    public static JSONObject groupsUsersDataToJson(ArrayList<HashMap<String,String>> data) throws SQLException {
         // TO DO: add the admin property too!
         // TO DO: clean this function
         JSONObject json = new JSONObject();
@@ -22,10 +22,11 @@ public class DataToJson {
         ArrayList<ArrayList<Integer>> arrayOfUsersInGroups = new ArrayList<>();
         ArrayList<JSONObject> arrayOfGroupJsons = new ArrayList<>();
 
-        while(rs.next()){
-            int groupId = rs.getInt("group_id");
-            int userId = rs.getInt("user_id");
-            boolean isPrivate = rs.getBoolean("is_private");
+        for(HashMap<String,String> line: data){
+            System.out.println("from groupsUsersDataToJson: " +line);
+            int groupId = Integer.parseInt(line.get("group_id"));
+            int userId = Integer.parseInt(line.get("user_id"));
+            boolean isPrivate = Boolean.parseBoolean(line.get("is_private"));
             if(groupIdToIndex.get(groupId) == null){
                 JSONObject tmpJson = new JSONObject();
                 tmpJson.put("group_id",groupId);

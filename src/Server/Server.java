@@ -23,6 +23,7 @@ public class Server {
             Class.forName("com.mysql.jdbc.Driver");
             con = DriverManager.getConnection(url, uName, password);
             manager = new Manager(con);
+            (new Thread(manager)).start();
             System.out.println("server is on!");
 
             while (true) {
