@@ -31,6 +31,11 @@ public class DataToJson {
                 JSONObject tmpJson = new JSONObject();
                 tmpJson.put("group_id",groupId);
                 tmpJson.put("is_private",isPrivate);
+                if(line.get("group_name") == null){
+                    tmpJson.put("group_name",JSONObject.NULL);
+                }else{
+                    tmpJson.put("group_name",line.get("group_name"));
+                }
 
                 arrayOfUsersInGroups.add(new ArrayList<>());
 
@@ -95,7 +100,6 @@ public class DataToJson {
                 groupIds.put(groupId,0);
                 arrayOfGroupsMsgs.put(groupMsgsDataToJson(data,groupId));
             }
-            i++;
         }
 
         json.put("groups_msgs", arrayOfGroupsMsgs);
