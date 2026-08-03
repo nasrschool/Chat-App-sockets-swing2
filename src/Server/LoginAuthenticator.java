@@ -97,7 +97,10 @@ public class LoginAuthenticator implements Runnable{
                 }
 
                 System.out.println("a user has logged in!");
-                sendMessage("{'msg':'client handler is about to be created!'}");
+                JSONObject successMsg = new JSONObject();
+                successMsg.put("msgType","AUTH_SUCCESS");
+                successMsg.put("user_id",user_id);
+                sendMessage(successMsg.toString());
 
                 manager.createClientHandler(socket,user_id);
                 break;// get out of the loop and the run function
