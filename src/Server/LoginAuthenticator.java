@@ -50,6 +50,7 @@ public class LoginAuthenticator implements Runnable{
             try{
                 System.out.println("waiting for auth msg");
                 String tmp = bufferedReader.readLine();
+                if(tmp == null){ socket.close(); break; }
                 System.out.println("received an auth msg");
                 authenticationMsg = new JSONObject(tmp);
 
@@ -88,11 +89,13 @@ public class LoginAuthenticator implements Runnable{
                         continue;
                     }
 
-                    if(ClientHandler.clientHandlers.get(user_id) != null){
-                        errorMsg.put("msgType",MsgTypes.ERROR);
-                        errorMsg.put("content","already logged from another device");
-                        sendMessage(errorMsg.toString());
-                        continue;
+                    synchronized (ClientHandler.clientHandlers){
+                        if(ClientHandler.clientHandlers.get(user_id) != null){
+                            errorMsg.put("msgType",MsgTypes.ERROR);
+                            errorMsg.put("content","already logged from another device");
+                            sendMessage(errorMsg.toString());
+                            continue;
+                        }
                     }
                 }
 
@@ -111,6 +114,8 @@ public class LoginAuthenticator implements Runnable{
             }
             catch(Exception e){
                 System.out.println("error in the authenticator: " + e);
+                try{ socket.close(); }catch(Exception ignored){}
+                socketIsConnected = false;
             }
         }
 

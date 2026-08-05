@@ -18,9 +18,10 @@ public class ClientHandler{
     private HashMap<String, List<Integer>> groupsUsers = new HashMap<>();
     private HashMap<String,ArrayList<JSONObject>> groupsChats = new HashMap<>();
     private ArrayList<JSONObject> msgsToSend = new ArrayList<>();
+    private boolean connected = true;
 
     public ClientHandler(Socket socket,int userId){
-        clientHandlers.put(userId,this);
+        synchronized (clientHandlers){ clientHandlers.put(userId,this); }
         this.socket = socket;
         this.userId = userId;
         this.manager = Manager.manager;
@@ -37,7 +38,7 @@ public class ClientHandler{
     }
     //these first 2 will be run in threads
     public void writeDataToClient(){
-        while(true){
+        while(connected){
             try{
                 synchronized (msgsToSend){
                     for(JSONObject msg: msgsToSend){
@@ -48,28 +49,42 @@ public class ClientHandler{
                     }
                     msgsToSend.clear();
                 }
+                Thread.sleep(25);
             }catch(Exception e){
-                System.out.println("error within the write function of user " + userId + ": " + e);
+                if(connected) System.out.println("error within the write function of user " + userId + ": " + e);
+                disconnect();
             }
         }
     }
 
     public void readDataFromClient(){
-        while(true){
+        while(connected){
             try{
-                JSONObject msg = new JSONObject(bufferedReader.readLine());
+                String line = bufferedReader.readLine();
+                if(line == null){ disconnect(); break; }
+                JSONObject msg = new JSONObject(line);
                 System.out.println("from client Handler: " + msg);
                 manager.addToTreatmentQueue(msg);
 
             }catch(Exception e){
-                System.out.println("error reading data from user " + this.userId + " :" + e);
+                if(connected) System.out.println("error reading data from user " + this.userId + " :" + e);
+                disconnect();
             }
         }
     }
 
     public void addToQueue(JSONObject msg){
         System.out.println("added to ch queue: " + msg);
-        msgsToSend.add(msg);
+        synchronized (msgsToSend){ msgsToSend.add(msg); }
+    }
+
+    public void disconnect(){
+        if(!connected) return;
+        connected = false;
+        synchronized (clientHandlers){
+            if(clientHandlers.get(userId) == this) clientHandlers.remove(userId);
+        }
+        try{ socket.close(); }catch(Exception ignored){}
     }
 
 }
