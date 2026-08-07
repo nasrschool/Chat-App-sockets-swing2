@@ -149,6 +149,7 @@ public class Manager implements Runnable{
 
             response.put("group_id",groupId);
             response.put("group_name",groupName);
+            notifyConnectedUsers(users,msgSource,MsgTypes.MAKE_GROUP);
         } catch (Exception e) {
             System.out.println("error creating new group!" + e);
             return error("failed database operation");
@@ -168,6 +169,7 @@ public class Manager implements Runnable{
             pt.setInt(2,otherUser);
             ResultSet rs = pt.executeQuery();
             int groupId;
+            boolean created = false;
             if(rs.next()){
                 groupId = rs.getInt("group_id");
             }else{
@@ -176,12 +178,14 @@ public class Manager implements Runnable{
                 groupId = (rs.next())?(rs.getInt("last_id") + 1):1;
                 addGroupUser(groupId,msgSource,true,null);
                 addGroupUser(groupId,otherUser,true,null);
+                created = true;
             }
             JSONObject response = new JSONObject();
             response.put("group_id",groupId);
             response.put("is_private",true);
             response.put("group_name",JSONObject.NULL);
             response.put("users_id",new JSONArray().put(msgSource).put(otherUser));
+            if(created) notifyConnectedUser(otherUser,MsgTypes.INVITE_TO_DM);
             return response;
         }catch(Exception e){
             System.out.println("error creating direct conversation: " + e);
@@ -253,6 +257,21 @@ public class Manager implements Runnable{
         response.put("msgType",MsgTypes.ERROR);
         response.put("content",content);
         return response;
+    }
+
+    private void notifyConnectedUsers(ArrayList<Integer> users,int msgSource,MsgTypes msgType){
+        for(int userId: users){
+            if(userId != msgSource) notifyConnectedUser(userId,msgType);
+        }
+    }
+
+    private void notifyConnectedUser(int userId,MsgTypes msgType){
+        JSONObject notification = new JSONObject();
+        notification.put("msgType",msgType);
+        synchronized (ClientHandler.clientHandlers){
+            ClientHandler ch = ClientHandler.clientHandlers.get(userId);
+            if(ch != null) ch.addToQueue(notification);
+        }
     }
 
 
