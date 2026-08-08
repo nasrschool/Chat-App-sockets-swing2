@@ -10,9 +10,9 @@ public class Testing{
     public static ArrayList<Integer> arr = new ArrayList<>();
     public static void main(String[] args) throws Exception {
         String url = System.getenv().getOrDefault(
-                "CHAT_DB_URL", "jdbc:mysql://localhost:3306/chat_app_server_side");
-        String uName = System.getenv().getOrDefault("CHAT_DB_USER", "root");
-        String password = System.getenv().getOrDefault("CHAT_DB_PASSWORD", "");
+                "CHAT_DB_URL", "jdbc:postgresql://localhost:5432/chat_app_server_side");
+        String uName = System.getenv().getOrDefault("CHAT_DB_USER", "chatuser");
+        String password = System.getenv().getOrDefault("CHAT_DB_PASSWORD", "chatpass");
         Connection con = DriverManager.getConnection(url, uName, password);
         PreparedStatement pt = con.prepareStatement(Statements.usersOfGroups);
         pt.setInt(1,3);

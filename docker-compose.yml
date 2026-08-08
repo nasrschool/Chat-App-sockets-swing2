@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: chat_app_server_side
+      POSTGRES_USER: chatuser
+      POSTGRES_PASSWORD: chatpass
+    ports:
+      - "${CHAT_DB_PORT:-5432}:5432"
+    volumes:
+      - chat_postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/sample_data.sql:/docker-entrypoint-initdb.d/02_sample_data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatuser -d chat_app_server_side"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  chat_postgres_data:

@@ -13,6 +13,6 @@ public class Statements {
     public static String getGroupUsers = "SELECT user_id FROM users_of_groups WHERE group_id = ?;";
     public static String isGroupMember = "SELECT 1 FROM users_of_groups WHERE group_id = ? AND user_id = ?;";
     public static String userExists = "SELECT 1 FROM users_table WHERE user_id = ?;";
-    public static String existingPrivateGroup = "SELECT group_id FROM users_of_groups WHERE is_private = TRUE GROUP BY group_id HAVING COUNT(*) = 2 AND SUM(user_id = ?) = 1 AND SUM(user_id = ?) = 1 LIMIT 1;";
+    public static String existingPrivateGroup = "SELECT group_id FROM users_of_groups WHERE is_private = TRUE GROUP BY group_id HAVING COUNT(*) = 2 AND COUNT(*) FILTER (WHERE user_id = ?) = 1 AND COUNT(*) FILTER (WHERE user_id = ?) = 1 LIMIT 1;";
 
 }

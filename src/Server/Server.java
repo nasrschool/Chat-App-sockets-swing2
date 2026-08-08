@@ -11,9 +11,9 @@ public class Server {
     public ServerSocket serverSocket;
     public Connection con;
     public String url = System.getenv().getOrDefault(
-            "CHAT_DB_URL", "jdbc:mysql://localhost:3306/chat_app_server_side");
-    public String uName = System.getenv().getOrDefault("CHAT_DB_USER", "root");
-    public String password = System.getenv().getOrDefault("CHAT_DB_PASSWORD", "");
+            "CHAT_DB_URL", "jdbc:postgresql://localhost:5432/chat_app_server_side");
+    public String uName = System.getenv().getOrDefault("CHAT_DB_USER", "chatuser");
+    public String password = System.getenv().getOrDefault("CHAT_DB_PASSWORD", "chatpass");
     public PreparedStatement st;
     public Manager manager;
 
@@ -21,7 +21,6 @@ public class Server {
     public Server(){
         try{
             serverSocket = new ServerSocket(1234);
-            Class.forName("com.mysql.cj.jdbc.Driver");
             con = DriverManager.getConnection(url, uName, password);
             manager = new Manager(con);
             (new Thread(manager)).start();
