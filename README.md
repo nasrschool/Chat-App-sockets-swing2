@@ -1,159 +1,223 @@
 # Java Socket Chat
 
-A small WhatsApp-like desktop chat application built for learning Java Swing, TCP sockets, JSON, threads, JDBC, and MySQL. It supports login, stored direct conversations, named groups, conversation history, and live delivery to connected members.
+A small WhatsApp-like desktop chat application built with Java 17, Swing, TCP sockets, JSON, JDBC, and PostgreSQL.
 
-The project deliberately stays simple. It does not use a web server, tokens, sessions, ORM, dependency injection, or an external UI framework.
+# Quick start
+
+Requirements:
+
+- Java 17 or newer
+- Maven
+- Docker Desktop, or Docker Engine with Docker Compose
+
+From the project directory:
+
+1. Start PostgreSQL.
+
+   ```bash
+   docker compose up -d
+   ```
+
+2. Wait until its status is `healthy`.
+
+   ```bash
+   docker compose ps
+   ```
+
+3. Compile the application.
+
+   ```bash
+   mvn clean compile
+   ```
+
+4. Start the server and leave this terminal open.
+
+   ```bash
+   mvn exec:java -Dexec.mainClass="Server.Server"
+   ```
+
+5. In a second terminal, start a client.
+
+   ```bash
+   mvn exec:java -Dexec.mainClass="Client.ClientApp"
+   ```
+
+6. Start additional clients with the same client command in additional terminals.
+
+Demo credentials:
+
+```text
+User 1 / demo1
+User 2 / demo2
+User 3 / demo3
+User 4 / demo4
+```
+
+The PostgreSQL container and Java server must stay running. Each client window represents one user, and the same user cannot be logged in twice at once.
+
+Stop PostgreSQL without deleting messages:
+
+```bash
+docker compose down
+```
+
+Reset PostgreSQL completely, including all conversations and messages:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+`down` preserves the named data volume. `down -v` deletes it, so the schema and demo data are recreated during the next startup.
+
+## Using the application
+
+Log in with one of the demo accounts. The left sidebar separates direct conversations from normal groups. Select a conversation to load its stored history.
+
+- `+ Direct` asks for another user ID. An existing direct conversation is returned instead of creating a duplicate.
+- `+ Group` asks for a name and comma-separated user IDs. The creator is included automatically.
+- Send messages with the button or Enter. Empty messages are ignored.
+- Own messages appear on the right. Incoming messages appear on the left. Incoming group messages show `User N` above the message.
+- Connected participants refresh their conversation lists when someone creates a conversation containing them.
 
 ## Architecture
 
-The Swing client keeps one TCP socket open after login. Each JSON object is written on one line with `BufferedWriter` and read with `BufferedReader`. The server authenticates the socket, creates one `ClientHandler` for the user, and passes application messages to the existing `Manager`. `Manager` uses JDBC prepared statements and sends responses through the connected handlers.
-
 ```text
-Swing frames -> ClientLogic -> TCP socket -> LoginAuthenticator / ClientHandler
-                                            -> Manager -> MySQL
+Swing client
+    -> TCP socket + line-delimited JSON
+    -> Server / LoginAuthenticator / ClientHandler / Manager
+    -> JDBC
+    -> PostgreSQL
 ```
 
-The sender also receives the server's `SEND_MSG` broadcast. The client therefore never inserts an optimistic message and has one rendering path for outgoing and incoming messages.
+The client keeps one socket open after login. `Manager` uses prepared statements for reads and writes. Messages are stored in `groups_chats` and then broadcast through the existing connected `ClientHandler` objects, including back to the sender. The UI therefore has one rendering path and does not optimistically duplicate sent messages.
+
+Direct and group conversations share the same model:
+
+- a direct conversation has exactly two rows in `users_of_groups`, `is_private = true`, and no group name;
+- a normal group has `is_private = false` and a repeated `group_name` for its member rows;
+- both store messages in `groups_chats`.
+
+The four database tables are `users_table`, `users_of_groups`, `admins_of_groups`, and `groups_chats`. Compose mounts `database/schema.sql` and `database/sample_data.sql` as ordered PostgreSQL initialization scripts. PostgreSQL runs them automatically only when its data directory is empty.
 
 ## Project structure
 
 ```text
-src/
-  Client/
-    ClientApp.java       Swing entry point
-    ClientLogic.java     socket connection, queues, incoming messages
-    LoginFrame.java      user ID/password login
-    ChatFrame.java       conversation sidebar and message view
-  Server/
-    Server.java
-    LoginAuthenticator.java
-    ClientHandler.java
-    Manager.java
-  Tools/
-    DataToJson.java
-    MsgTypes.java
-    Statements.java
-database/
-  schema.sql
-  sample_data.sql
-pom.xml
+src/Client/                 Swing client and socket logic
+src/Server/                 socket server, authentication, handlers, manager
+src/Tools/                  message types, SQL statements, JSON conversion
+database/schema.sql         PostgreSQL schema
+database/sample_data.sql    rerunnable demo seed data
+docker-compose.yml          PostgreSQL 16 service and healthcheck
+pom.xml                     Java 17 build and dependencies
 ```
 
-## Conversation model
+## Configuration
 
-Direct messages and groups share the same database and message flow. A direct conversation is a group with exactly two membership rows and `is_private = true`. A normal group has `is_private = false` and a repeated `group_name` in its membership rows. Both store messages in `groups_chats`.
+The defaults match `docker-compose.yml`:
 
-Private conversations are displayed as `User 4`, using the other member's numeric ID. The project intentionally has no username or profile subsystem.
+```text
+CHAT_DB_URL=jdbc:postgresql://localhost:5432/chat_app_server_side
+CHAT_DB_USER=chatuser
+CHAT_DB_PASSWORD=chatpass
+```
 
-## Client behavior
-
-Run `Client.ClientApp` to open the login window. Enter a numeric user ID and password. Invalid credentials are displayed under the login fields. A successful login keeps the authenticated socket open and shows the main chat frame.
-
-The left sidebar contains `+ Direct`, `+ Group`, direct conversations, and groups. Items have normal, hover, and selected backgrounds. Selecting one clears the message area and loads its stored history.
-
-The right side displays the conversation name, scrollable messages, a text field, and Send button. Enter also sends. Empty messages are ignored. Own messages are right-aligned; other messages are left-aligned. In groups, incoming messages include a `User N` sender label.
-
-`+ Direct` asks for another numeric user ID. The server returns the existing private conversation for that exact pair or creates it, so duplicate DMs are not created.
-
-`+ Group` asks for a group name and comma-separated user IDs. Invalid/nonexistent IDs are ignored, the creator is always included, and the creator is inserted into `admins_of_groups`. At least one valid member besides the creator is required.
+Set those environment variables before starting the server to override them. The client uses `CHAT_SERVER_HOST`, which defaults to `localhost`. The chat server listens on TCP port `1234`.
 
 ## JSON examples
 
-Authentication uses the original boolean message type:
+Authentication keeps the original simple boolean message type:
 
 ```json
-{"msgType":true,"user_id":3,"user_password":"example"}
-```
-
-Load conversations:
-
-```json
-{"msgType":"GET_ALL_GROUP_DATA","msgSource":3}
-```
-
-The response contains each conversation's group ID, privacy flag, nullable group name, and member IDs.
-
-```json
-{"msgType":"GET_ALL_GROUP_DATA","content":[{"group_id":4,"is_private":true,"group_name":null,"users_id":[3,5]}]}
-```
-
-Load history:
-
-```json
-{"msgType":"GET_ALL_GROUP_CHAT","msgSource":3,"msgDestination":8}
+{"msgType":true,"user_id":1,"user_password":"demo1"}
 ```
 
 Start or return a direct conversation:
 
 ```json
-{"msgType":"INVITE_TO_DM","msgSource":3,"user_id":4}
+{"msgType":"INVITE_TO_DM","msgSource":1,"user_id":2}
 ```
 
 Create a group:
 
 ```json
-{"msgType":"MAKE_GROUP","msgSource":3,"group_name":"School Project","users_id":[2,4,7]}
+{"msgType":"MAKE_GROUP","msgSource":1,"group_name":"Demo Group","users_id":[2,3]}
 ```
 
 Send a message:
 
 ```json
-{"msgType":"SEND_MSG","msgSource":3,"msgDestination":8,"content":"Hello everyone"}
+{"msgType":"SEND_MSG","msgSource":1,"msgDestination":2,"content":"Hello everyone"}
 ```
 
-Server broadcast:
+## Inspecting PostgreSQL
 
-```json
-{"msgType":"SEND_MSG","group_id":8,"user_id":3,"content":"Hello everyone","date":"2026-08-06T18:04:00"}
-```
-
-## Database
-
-The schema keeps the original concepts:
-
-- `users_table`: numeric IDs and passwords
-- `users_of_groups`: membership, privacy flag, and nullable group name
-- `admins_of_groups`: group administrators
-- `groups_chats`: persisted messages
-
-Create a clean local database by running `database/schema.sql` with a MySQL client. Optionally run `database/sample_data.sql`; it creates users 1, 2, and 3 with local demonstration passwords `demo1`, `demo2`, and `demo3`, plus sample conversations. These are examples, not real credentials.
-
-For an existing database created by an older version, add the required metadata column before running the completed application:
-
-```sql
-ALTER TABLE users_of_groups ADD COLUMN group_name VARCHAR(100) NULL;
-```
-
-## Configuration
-
-The server uses these environment variables:
-
-- `CHAT_DB_URL` (default `jdbc:mysql://localhost:3306/chat_app_server_side`)
-- `CHAT_DB_USER` (default `root`)
-- `CHAT_DB_PASSWORD` (default empty)
-
-The client optionally uses `CHAT_SERVER_HOST` (default `localhost`). The TCP port is `1234`.
-
-PowerShell example:
-
-```powershell
-$env:CHAT_DB_URL = "jdbc:mysql://localhost:3306/chat_app_server_side"
-$env:CHAT_DB_USER = "root"
-$env:CHAT_DB_PASSWORD = "your-local-password"
-```
-
-## Build and run
-
-Requirements are JDK 17, Maven, and MySQL 8.
+List tables and demo users without installing `psql` locally:
 
 ```bash
-mvn clean compile
+docker compose exec postgres psql -U chatuser -d chat_app_server_side -c "\dt"
+docker compose exec postgres psql -U chatuser -d chat_app_server_side -c "SELECT * FROM users_table ORDER BY user_id;"
 ```
 
-Run `Server.Server` first from an IDE or with the compiled classes and Maven dependencies on the classpath. Then run one or more instances of `Client.ClientApp`. Each client should use a different sample account when testing simultaneous delivery.
+Inspect stored messages:
 
-Closing a client closes its socket. The server removes its `ClientHandler`, allowing the same user to log in again. Messages already stored in MySQL remain available on the next login.
+```bash
+docker compose exec postgres psql -U chatuser -d chat_app_server_side -c "SELECT * FROM groups_chats ORDER BY message_id;"
+```
+
+## Troubleshooting
+
+### Port 5432 already in use
+
+Another PostgreSQL server may already use the port. Stop it, or select another host port before starting Compose. For example, in PowerShell:
+
+```powershell
+$env:CHAT_DB_PORT = "5433"
+docker compose up -d
+```
+
+On Unix-like systems:
+
+```bash
+CHAT_DB_PORT=5433 docker compose up -d
+```
+
+Then start the Java server with a matching URL:
+
+```text
+CHAT_DB_URL=jdbc:postgresql://localhost:5433/chat_app_server_side
+```
+
+On Windows, `Get-NetTCPConnection -LocalPort 5432` can identify the listening process. On Unix-like systems, use `lsof -i :5432` or `ss -ltnp`.
+
+### Port 1234 already in use
+
+Another chat server instance is probably running. Close it before starting a new one.
+
+### Cannot connect to the database
+
+Check container state and initialization output:
+
+```bash
+docker compose ps
+docker compose logs postgres
+```
+
+Wait for `healthy` before starting the Java server.
+
+### Login does not work
+
+Use one of the seeded credentials above. If a user is already connected, close that user's existing client first.
+
+### Reset demo data
+
+This permanently deletes the local Docker database volume and recreates the seed data:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
 
 ## Scope
 
-This is intentionally an educational desktop application. It excludes access and refresh tokens, persistent sessions, automatic reconnection, REST APIs, WebSockets, Spring, Hibernate/JPA, message brokers, media, encryption, reactions, receipts, typing indicators, profiles, and advanced group administration.
+This is intentionally an educational desktop application. It does not include tokens, persistent sessions, automatic reconnection, REST, WebSockets, Spring, ORM, migrations frameworks, message brokers, or a Dockerized Java application.
