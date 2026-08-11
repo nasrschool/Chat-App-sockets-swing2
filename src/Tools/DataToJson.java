@@ -26,7 +26,7 @@ public class DataToJson {
             System.out.println("from groupsUsersDataToJson: " +line);
             int groupId = Integer.parseInt(line.get("group_id"));
             int userId = Integer.parseInt(line.get("user_id"));
-            boolean isPrivate = Boolean.parseBoolean(line.get("is_private"));
+            boolean isPrivate = "true".equalsIgnoreCase(line.get("is_private")) || "t".equalsIgnoreCase(line.get("is_private"));
             if(groupIdToIndex.get(groupId) == null){
                 JSONObject tmpJson = new JSONObject();
                 tmpJson.put("group_id",groupId);
