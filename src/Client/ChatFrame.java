@@ -9,22 +9,6 @@ import java.awt.event.*;
 import java.util.HashMap;
 
 public class ChatFrame extends JFrame {
-    private static final Color WINDOW_BACKGROUND = new Color(246,247,249);
-    private static final Color CHAT_BACKGROUND = new Color(248,250,252);
-    private static final Color SIDEBAR = new Color(32,42,51);
-    private static final Color SIDEBAR_HOVER = new Color(43,55,66);
-    private static final Color SIDEBAR_SELECTED = new Color(53,71,88);
-    private static final Color PRIMARY_BLUE = new Color(59,130,246);
-    private static final Color PRIMARY_BLUE_HOVER = new Color(37,99,235);
-    private static final Color PRIMARY_TEXT = new Color(31,41,55);
-    private static final Color SECONDARY_TEXT = new Color(100,116,139);
-    private static final Color SIDEBAR_TEXT = new Color(248,250,252);
-    private static final Color SIDEBAR_MUTED = new Color(148,163,184);
-    private static final Color BORDER = new Color(220,226,232);
-    private static final Color INPUT_BORDER = new Color(203,213,225);
-    private static final Color OWN_MESSAGE = new Color(219,234,254);
-    private static final Font FONT = new Font("Segoe UI",Font.PLAIN,14);
-    private static final Font FONT_BOLD = new Font("Segoe UI",Font.BOLD,14);
     private final int userId;
     private int selectedGroupId = -1;
     private boolean selectedIsPrivate;
@@ -33,54 +17,60 @@ public class ChatFrame extends JFrame {
     private JLabel conversationName = new JLabel("Select a conversation");
     private JTextField messageField = new JTextField();
     private HashMap<Integer,JPanel> conversationItems = new HashMap<>();
-    private final Color normal = SIDEBAR, hover = SIDEBAR_HOVER, selected = SIDEBAR_SELECTED;
+    private final Color normal = UiTheme.SIDEBAR_BACKGROUND, hover = UiTheme.SIDEBAR_HOVER, selected = UiTheme.SIDEBAR_SELECTED;
 
     public ChatFrame(int userId){
         this.userId = userId;
         setTitle("Chat - User " + userId); setSize(1000,680); setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); setLayout(new BorderLayout());
-        getContentPane().setBackground(WINDOW_BACKGROUND);
+        getContentPane().setBackground(UiTheme.MAIN_BACKGROUND);
         add(createSidebar(),BorderLayout.WEST); add(createChatPanel(),BorderLayout.CENTER);
         addWindowListener(new WindowAdapter(){ public void windowClosed(WindowEvent e){ ClientLogic.close(); } });
     }
 
     private JPanel createSidebar(){
         JPanel sidebar = new JPanel(new BorderLayout()); sidebar.setPreferredSize(new Dimension(260,0)); sidebar.setBackground(normal);
-        JPanel buttons = new JPanel(new GridLayout(1,2,6,0)); JButton direct = new JButton("+ Direct"), group = new JButton("+ Group");
+        JPanel buttons = new JPanel(new GridLayout(1,2,8,0));
+        JButton direct = new RoundedButton("+ Direct",Color.WHITE,UiTheme.BUTTON_HOVER,UiTheme.BUTTON_PRESSED,UiTheme.INPUT_BORDER);
+        JButton group = new RoundedButton("+ Group",Color.WHITE,UiTheme.BUTTON_HOVER,UiTheme.BUTTON_PRESSED,UiTheme.INPUT_BORDER);
         styleSidebarButton(direct); styleSidebarButton(group);
+        direct.setIcon(UiTheme.icon("user-add.png",18,UiTheme.PRIMARY_BLUE)); group.setIcon(UiTheme.icon("group-add.png",18,UiTheme.PRIMARY_BLUE));
         direct.addActionListener(e -> startDirect()); group.addActionListener(e -> createGroup()); buttons.add(direct); buttons.add(group);
-        buttons.setBackground(WINDOW_BACKGROUND); buttons.setBorder(BorderFactory.createEmptyBorder(14,12,14,12)); sidebar.add(buttons,BorderLayout.NORTH);
+        buttons.setBackground(UiTheme.MAIN_BACKGROUND); buttons.setBorder(BorderFactory.createEmptyBorder(14,12,14,12)); sidebar.add(buttons,BorderLayout.NORTH);
         JPanel lists = new JPanel(); lists.setBackground(normal); lists.setLayout(new BoxLayout(lists,BoxLayout.Y_AXIS));
         lists.add(sectionLabel("DIRECT")); setupList(directPanel); lists.add(directPanel);
         lists.add(sectionLabel("GROUPS")); setupList(groupPanel); lists.add(groupPanel);
         JScrollPane listScroll = new JScrollPane(lists); listScroll.setBorder(BorderFactory.createEmptyBorder());
-        listScroll.getViewport().setBackground(SIDEBAR); sidebar.add(listScroll,BorderLayout.CENTER); return sidebar;
+        listScroll.getViewport().setBackground(UiTheme.SIDEBAR_BACKGROUND); listScroll.getVerticalScrollBar().setUI(new ModernScrollBarUI(UiTheme.SIDEBAR_BACKGROUND));
+        listScroll.getVerticalScrollBar().setPreferredSize(new Dimension(8,0)); sidebar.add(listScroll,BorderLayout.CENTER); return sidebar;
     }
 
     private JLabel sectionLabel(String text){
-        JLabel label = new JLabel(text); label.setForeground(SIDEBAR_MUTED); label.setFont(new Font("Segoe UI",Font.BOLD,12));
+        JLabel label = new JLabel(text); label.setForeground(UiTheme.SIDEBAR_MUTED); label.setFont(UiTheme.font(Font.BOLD,12));
         label.setBorder(BorderFactory.createEmptyBorder(20,16,8,8)); label.setAlignmentX(Component.LEFT_ALIGNMENT); return label;
     }
     private void setupList(JPanel panel){ panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS)); panel.setBackground(normal); panel.setAlignmentX(Component.LEFT_ALIGNMENT); }
 
     private JPanel createChatPanel(){
-        JPanel chat = new JPanel(new BorderLayout()); chat.setBackground(CHAT_BACKGROUND);
-        conversationName.setFont(new Font("Segoe UI",Font.BOLD,22)); conversationName.setForeground(PRIMARY_TEXT);
-        conversationName.setOpaque(true); conversationName.setBackground(WINDOW_BACKGROUND);
-        conversationName.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,1,0,BORDER),BorderFactory.createEmptyBorder(20,24,20,24))); chat.add(conversationName,BorderLayout.NORTH);
-        messagesPanel.setLayout(new BoxLayout(messagesPanel,BoxLayout.Y_AXIS)); messagesPanel.setBackground(CHAT_BACKGROUND);
+        JPanel chat = new JPanel(new BorderLayout()); chat.setBackground(UiTheme.CHAT_BACKGROUND);
+        conversationName.setFont(UiTheme.font(Font.BOLD,22)); conversationName.setForeground(UiTheme.TEXT_PRIMARY);
+        conversationName.setOpaque(true); conversationName.setBackground(UiTheme.HEADER_BACKGROUND);
+        conversationName.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,1,0,UiTheme.BORDER_LIGHT),BorderFactory.createEmptyBorder(20,24,20,24))); chat.add(conversationName,BorderLayout.NORTH);
+        messagesPanel.setLayout(new BoxLayout(messagesPanel,BoxLayout.Y_AXIS)); messagesPanel.setBackground(UiTheme.CHAT_BACKGROUND);
         messagesPanel.setBorder(BorderFactory.createEmptyBorder(10,14,10,14));
         messagesPanel.add(Box.createVerticalGlue());
         messagesScroll = new JScrollPane(messagesPanel); messagesScroll.setBorder(BorderFactory.createEmptyBorder());
-        messagesScroll.getViewport().setBackground(CHAT_BACKGROUND); chat.add(messagesScroll,BorderLayout.CENTER);
-        JPanel compose = new JPanel(new BorderLayout(8,0)); JButton send = new JButton("Send");
+        messagesScroll.getViewport().setBackground(UiTheme.CHAT_BACKGROUND); messagesScroll.getVerticalScrollBar().setUI(new ModernScrollBarUI());
+        messagesScroll.getVerticalScrollBar().setPreferredSize(new Dimension(10,0)); chat.add(messagesScroll,BorderLayout.CENTER);
+        JPanel compose = new JPanel(new BorderLayout(10,0));
+        JButton send = new RoundedButton("Send",UiTheme.PRIMARY_BLUE,UiTheme.PRIMARY_BLUE_HOVER,UiTheme.PRIMARY_BLUE_PRESSED,null);
         stylePrimaryButton(send);
-        messageField.setFont(FONT); messageField.setForeground(PRIMARY_TEXT); messageField.setBackground(Color.WHITE);
-        messageField.setCaretColor(PRIMARY_TEXT);
-        messageField.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(INPUT_BORDER),BorderFactory.createEmptyBorder(11,14,11,14)));
+        messageField.setFont(UiTheme.font(Font.PLAIN,14)); messageField.setForeground(UiTheme.TEXT_PRIMARY); messageField.setBackground(UiTheme.INPUT_BACKGROUND);
+        messageField.setCaretColor(UiTheme.TEXT_PRIMARY);
+        messageField.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UiTheme.INPUT_BORDER,1,true),BorderFactory.createEmptyBorder(11,14,11,14)));
         send.addActionListener(e -> sendMessage()); messageField.addActionListener(e -> sendMessage());
-        compose.setBackground(WINDOW_BACKGROUND); compose.add(messageField,BorderLayout.CENTER); compose.add(send,BorderLayout.EAST);
-        compose.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1,0,0,0,BORDER),BorderFactory.createEmptyBorder(12,14,12,14)));
+        compose.setBackground(UiTheme.MAIN_BACKGROUND); compose.add(messageField,BorderLayout.CENTER); compose.add(send,BorderLayout.EAST);
+        compose.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1,0,0,0,UiTheme.BORDER_LIGHT),BorderFactory.createEmptyBorder(12,14,12,14)));
         chat.add(compose,BorderLayout.SOUTH); return chat;
     }
 
@@ -115,7 +105,8 @@ public class ChatFrame extends JFrame {
     private JPanel conversationItem(int groupId,String name,boolean isPrivate){
         JPanel item = new JPanel(new BorderLayout()); item.setMaximumSize(new Dimension(Integer.MAX_VALUE,50));
         item.setBackground(groupId == selectedGroupId ? selected : normal); JLabel label = new JLabel(name);
-        label.setForeground(SIDEBAR_TEXT); label.setFont(FONT_BOLD); label.setBorder(BorderFactory.createEmptyBorder(14,16,14,8)); item.add(label); conversationItems.put(groupId,item);
+        label.setForeground(UiTheme.SIDEBAR_TEXT); label.setFont(UiTheme.font(Font.PLAIN,14)); label.setIcon(UiTheme.icon(isPrivate ? "user.png" : "group.png",16,UiTheme.SIDEBAR_MUTED));
+        label.setIconTextGap(8); label.setBorder(BorderFactory.createEmptyBorder(14,14,14,8)); item.add(label); conversationItems.put(groupId,item);
         setConversationBorder(item,groupId == selectedGroupId);
         item.addMouseListener(new MouseAdapter(){
             public void mouseEntered(MouseEvent e){ if(groupId != selectedGroupId) item.setBackground(hover); }
@@ -144,11 +135,10 @@ public class ChatFrame extends JFrame {
         int sender = msg.getInt("user_id"); boolean own = sender == userId;
         JPanel row = new JPanel(new FlowLayout(own ? FlowLayout.RIGHT : FlowLayout.LEFT,8,3)); row.setOpaque(false);
         row.setBorder(BorderFactory.createEmptyBorder(2,4,2,4));
-        JPanel bubble = new JPanel(); bubble.setLayout(new BoxLayout(bubble,BoxLayout.Y_AXIS)); bubble.setBackground(own ? new Color(210,240,205) : Color.WHITE);
-        bubble.setBackground(own ? OWN_MESSAGE : Color.WHITE);
-        bubble.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(226,232,240)),BorderFactory.createEmptyBorder(9,12,9,12)));
-        if(!own && !selectedIsPrivate){ JLabel senderLabel = new JLabel("User " + sender); senderLabel.setFont(new Font("Segoe UI",Font.BOLD,12)); senderLabel.setForeground(SECONDARY_TEXT); senderLabel.setBorder(BorderFactory.createEmptyBorder(0,0,3,0)); bubble.add(senderLabel); }
-        JLabel messageText = new JLabel(msg.optString("content")); messageText.setFont(FONT); messageText.setForeground(PRIMARY_TEXT);
+        JPanel bubble = new RoundedPanel(own ? UiTheme.OWN_MESSAGE : UiTheme.INCOMING_MESSAGE,own ? UiTheme.OWN_MESSAGE_BORDER : UiTheme.BORDER_SUBTLE,14);
+        bubble.setLayout(new BoxLayout(bubble,BoxLayout.Y_AXIS)); bubble.setBorder(BorderFactory.createEmptyBorder(9,13,9,13));
+        if(!own && !selectedIsPrivate){ JLabel senderLabel = new JLabel("User " + sender); senderLabel.setFont(UiTheme.font(Font.BOLD,12)); senderLabel.setForeground(UiTheme.SENDER_TEXT); senderLabel.setBorder(BorderFactory.createEmptyBorder(0,0,3,0)); bubble.add(senderLabel); }
+        JLabel messageText = new JLabel(msg.optString("content")); messageText.setFont(UiTheme.font(Font.PLAIN,14)); messageText.setForeground(UiTheme.TEXT_PRIMARY);
         bubble.add(messageText); row.add(bubble);
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE,row.getPreferredSize().height));
         messagesPanel.add(row);
@@ -175,28 +165,18 @@ public class ChatFrame extends JFrame {
     }
 
     private void styleSidebarButton(JButton button){
-        button.setFont(FONT_BOLD); button.setForeground(new Color(51,65,85)); button.setBackground(Color.WHITE);
-        button.setFocusPainted(false); button.setContentAreaFilled(false); button.setOpaque(true);
-        button.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(INPUT_BORDER),BorderFactory.createEmptyBorder(8,10,8,10)));
-        addButtonHover(button,Color.WHITE,new Color(241,245,249));
+        button.setFont(UiTheme.font(Font.BOLD,14)); button.setForeground(UiTheme.TEXT_PRIMARY); button.setIconTextGap(8);
+        button.setFocusPainted(false); button.setBorder(BorderFactory.createEmptyBorder(9,10,9,10));
     }
 
     private void stylePrimaryButton(JButton button){
-        button.setFont(FONT_BOLD); button.setForeground(Color.WHITE); button.setBackground(PRIMARY_BLUE);
-        button.setFocusPainted(false); button.setContentAreaFilled(false); button.setOpaque(true);
+        button.setFont(UiTheme.font(Font.BOLD,14)); button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder(11,24,11,24));
-        addButtonHover(button,PRIMARY_BLUE,PRIMARY_BLUE_HOVER);
-    }
-
-    private void addButtonHover(JButton button,Color normalColor,Color hoverColor){
-        button.addMouseListener(new MouseAdapter(){
-            public void mouseEntered(MouseEvent e){ button.setBackground(hoverColor); }
-            public void mouseExited(MouseEvent e){ button.setBackground(normalColor); }
-        });
     }
 
     private void setConversationBorder(JPanel item,boolean isSelected){
-        item.setBorder(isSelected ? BorderFactory.createMatteBorder(0,3,0,0,PRIMARY_BLUE) : BorderFactory.createEmptyBorder(0,3,0,0));
+        item.setBorder(isSelected ? BorderFactory.createMatteBorder(0,3,0,0,UiTheme.PRIMARY_BLUE) : BorderFactory.createEmptyBorder(0,3,0,0));
     }
 
     private static class MessagePanel extends JPanel implements Scrollable {
